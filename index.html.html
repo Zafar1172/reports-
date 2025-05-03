@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدرسہ تعلیمی جائزے کی رپورٹ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Noto Nastaliq Urdu', sans-serif;
+            direction: rtl;
+            text-align: right;
+            background-color: #f7f7f7;
+            line-height: 1.8; /* Improved readability for Urdu */
+        }
+        .page {
+            display: none; /* Hide all pages by default */
+        }
+        .active-page {
+            display: block; /* Show the active page */
+        }
+        /* Custom styling for the bar chart */
+        .bar-chart-container {
+            width: 100%;
+            height: 300px; /* Fixed height for the chart area */
+            display: flex;
+            align-items: flex-end;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+            position: relative;
+            overflow-x: auto; /* Add horizontal scroll if many bars */
+            white-space: nowrap; /* Prevent bars from wrapping */
+             /* Styles for PDF conversion */
+            justify-content: space-around; /* Distribute bars evenly for PDF */
+            overflow-x: hidden; /* Hide scrollbar in PDF */
+            white-space: normal; /* Allow wrapping in PDF */
+        }
+        .bar {
+            flex-shrink: 0; /* Prevent bars from shrinking */
+            width: 40px; /* Fixed width for bars */
+            margin: 0 4px; /* Increased margin */
+            background-color: #3490dc; /* Blue color for bars */
+            color: white;
+            text-align: center;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 5px;
+            box-sizing: border-box;
+            position: relative;
+            transition: height 0.5s ease-in-out; /* Smooth transition for height changes */
+
+            /* Adjust bar width dynamically for better PDF layout */
+            width: calc(100% / var(--num-subjects));
+            margin: 0 1px; /* Reduced margin for dynamic width */
+            flex-shrink: 1; /* Allow shrinking with dynamic width */
+        }
+         /* Adjust bar width for fewer subjects if needed (less critical with dynamic width) */
+        /* .bar-chart-container[data-num-subjects="1"] .bar { width: 80px; } */
+        /* .bar-chart-container[data-num-subjects="2"] .bar { width: 70px; } */
+        /* .bar-chart-container[data-num-subjects="3"] .bar { width: 60px; } */
+        /* .bar-chart-container[data-num-subjects="4"] .bar { width: 50px; } */
+
+
+        .bar span {
+            position: static; /* Change positioning for PDF */
+            display: block; /* Make it a block element */
+            text-align: center;
+            font-size: 0.5rem; /* Smaller font for labels */
+            color: #333; /* Keep original color or change for PDF */
+            margin-top: 5px; /* Space below the bar */
+            white-space: normal; /* Allow wrapping */
+            word-break: break-word;
+        }
+        .bar::before {
+            content: attr(data-score); /* Display score on top of the bar */
+            position: static; /* Change positioning for PDF */
+            display: block; /* Make it a block element */
+            text-align: center;
+            font-size: 0.6rem; /* Smaller font for scores */
+            font-weight: bold;
+            color: #333; /* Keep original color or change for PDF */
+            margin-bottom: 5px; /* Space above the bar */
+        }
+         /* Print specific styles (mostly removed or integrated into main styles for PDF) */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            /* Basic print styles */
+            body {
+                font-size: 10pt; /* Smaller font for print */
+                line-height: 1.5;
+                background-color: white;
+            }
+             h1, h2, h3 {
+                 color: #000 !important; /* Black color for headings in print */
+             }
+             /* Ensure report content is visible */
+             #reportDisplayPage {
+                 display: block !important;
+                 margin: 0;
+                 padding: 0;
+                 box-shadow: none;
+             }
+             .report-section {
+                margin-bottom: 15px; /* Reduced margin */
+                padding-bottom: 8px; /* Reduced padding */
+                border-bottom: 1px dashed #ccc;
+            }
+            /* Bar chart styles for print (should align with PDF styles now) */
+             .bar-chart-container {
+                height: 150px; /* Adjust height for printing */
+                overflow-x: hidden; /* Hide scrollbar in print */
+                white-space: normal;
+                display: flex; /* Ensure flex layout for bars in print */
+                justify-content: space-around; /* Distribute bars evenly */
+                align-items: flex-end;
+             }
+             .bar {
+                 flex-shrink: 1; /* Allow bars to shrink in print */
+                 width: calc(100% / var(--num-subjects)); /* Dynamic width based on number of subjects for print */
+                 margin: 0 1px; /* Reduced margin */
+             }
+             .bar span, .bar::before {
+                 position: static;
+                 display: block;
+                 text-align: center;
+                 color: #000; /* Black color */
+             }
+             .bar span {
+                 font-size: 0.5rem;
+                 margin-top: 5px;
+             }
+             .bar::before {
+                 font-size: 0.6rem;
+                 margin-bottom: 5px;
+             }
+
+             /* Logo positioning for print/PDF */
+             #reportHeader {
+                 display: flex;
+                 justify-content: space-between;
+                 align-items: center;
+                 margin-bottom: 20px;
+             }
+             #reportHeader h1 {
+                 margin: 0; /* Remove default margin */
+                 flex-grow: 1; /* Allow heading to take available space */
+                 text-align: right; /* Ensure text is right-aligned */
+             }
+              #reportLogo {
+                max-width: 80px; /* Adjust logo size for print/PDF */
+                height: auto;
+                margin-left: 20px; /* Space between heading and logo */
+             }
+        }
+
+        /* Logo positioning for screen display (optional, adjust as needed) */
+        #reportHeader {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             margin-bottom: 20px;
+         }
+         #reportHeader h1 {
+             margin: 0;
+             flex-grow: 1;
+             text-align: right;
+         }
+          #reportLogo {
+            max-width: 100px; /* Adjust logo size for screen */
+            height: auto;
+            margin-left: 20px;
+         }
+
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="homePage" class="page active-page container mx-auto mt-8 p-6 bg-white rounded-lg shadow-xl">
+        <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">مدرسہ تعلیمی جائزے کی رپورٹ</h1>
+        <p class="text-center text-gray-700 mb-8">نئی رپورٹ بنانے کے لیے نیچے بٹن پر کلک کریں۔</p>
+        <div class="text-center">
+            <button onclick="showPage('reviewFormPage')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out">
+                نئی رپورٹ بنائیں
+            </button>
+        </div>
+    </div>
+
+    <div id="reviewFormPage" class="page container mx-auto mt-8 p-6 bg-white rounded-lg shadow-xl">
+        <h1 class="text-2xl font-bold text-center text-blue-700 mb-6">جائزے کی تفصیلات درج کریں</h1>
+
+        <div class="mb-4">
+            <label for="madrasaName" class="block text-gray-700 text-sm font-bold mb-2">مدرسے کا نام:</label>
+            <input type="text" id="madrasaName" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+
+        <div class="mb-4">
+            <label for="madrasaAddress" class="block text-gray-700 text-sm font-bold mb-2">پتہ:</label>
+            <input type="text" id="madrasaAddress" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+
+         <div class="mb-4">
+            <label for="madrasaContact" class="block text-gray-700 text-sm font-bold mb-2">رابطہ نمبر:</label>
+            <input type="text" id="madrasaContact" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+
+        <div class="mb-4">
+            <label for="teacherName" class="block text-gray-700 text-sm font-bold mb-2">استاد کا نام:</label>
+            <input type="text" id="teacherName" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+
+        <div class="mb-4">
+            <label for="className" class="block text-gray-700 text-sm font-bold mb-2">جماعت:</label>
+            <input type="text" id="className" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+
+        <div class="mb-4">
+            <label for="reviewDate" class="block text-gray-700 text-sm font-bold mb-2">تاریخ:</label>
+            <input type="date" id="reviewDate" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+
+         <div class="mb-6">
+            <label for="logoUpload" class="block text-gray-700 text-sm font-bold mb-2">لوگو امیج اپلوڈ کریں:</label>
+            <input type="file" id="logoUpload" accept="image/*" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+             <p id="logoUploadStatus" class="text-sm text-gray-600 mt-1"></p> </div>
+
+
+        <div class="mb-6">
+            <h2 class="text-xl font-bold text-blue-700 mb-3">مضامین کی کارکردگی (0-100)</h2>
+             <button onclick="showModal('subjectEditModal')" class="mb-3 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm py-1 px-3 rounded-full">
+                مضامین میں ترمیم کریں
+            </button>
+            <div id="subjectSlidersContainer">
+                </div>
+        </div>
+
+        <div class="mb-6">
+             <h2 class="text-xl font-bold text-blue-700 mb-3">ہم نصابی سرگرمیاں</h2>
+             <button onclick="showModal('activityEditModal')" class="mb-3 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm py-1 px-3 rounded-full">
+                سرگرمیوں میں ترمیم کریں
+            </button>
+            <div id="activityCheckboxesContainer">
+                </div>
+        </div>
+
+        <div class="mb-6">
+            <label for="reviewerComments" class="block text-gray-700 text-sm font-bold mb-2">اضافی تاثرات:</label>
+            <textarea id="reviewerComments" rows="4" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+        </div>
+
+        <div class="mb-6">
+            <label for="reviewerName" class="block text-gray-700 text-sm font-bold mb-2">جائزہ لینے والے کا نام:</label>
+            <input type="text" id="reviewerName" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+
+        <div class="flex justify-between">
+            <button onclick="showPage('subjectDetailsPage')" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full shadow transition duration-300 ease-in-out">
+                مضمون کی تفصیلات شامل کریں
+            </button>
+             <button onclick="generateReport()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full shadow transition duration-300 ease-in-out">
+                رپورٹ بنائیں
+            </button>
+        </div>
+         <div class="text-center mt-4">
+             <button onclick="showPage('homePage')" class="text-gray-600 hover:text-gray-800 text-sm">واپس ہوم پر</button>
+         </div>
+    </div>
+
+    <div id="subjectDetailsPage" class="page container mx-auto mt-8 p-6 bg-white rounded-lg shadow-xl">
+         <h1 class="text-2xl font-bold text-center text-blue-700 mb-6">مضمون کی اضافی تفصیلات</h1>
+
+        <div class="mb-4">
+            <label for="selectSubjectForDetails" class="block text-gray-700 text-sm font-bold mb-2">مضمون منتخب کریں:</label>
+            <select id="selectSubjectForDetails" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </select>
+        </div>
+
+        <div class="mb-4">
+            <label for="subjectTeacher" class="block text-gray-700 text-sm font-bold mb-2">استاد کا نام:</label>
+            <input type="text" id="subjectTeacher" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+
+        <div class="mb-4">
+            <label for="materialCovered" class="block text-gray-700 text-sm font-bold mb-2">پڑھائے گئے مواد کی مقدار:</label>
+            <input type="text" id="materialCovered" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+
+        <div class="mb-6">
+            <label for="qualityResult" class="block text-gray-700 text-sm font-bold mb-2">معیار / نتیجہ:</label>
+            <textarea id="qualityResult" rows="3" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+        </div>
+
+        <button onclick="addSubjectDetails()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full shadow transition duration-300 ease-in-out mb-6">
+            تفصیل شامل کریں
+        </button>
+
+        <div class="mb-6">
+            <h2 class="text-xl font-bold text-blue-700 mb-3">شامل کردہ تفصیلات</h2>
+            <div id="addedSubjectDetailsList">
+                </div>
+        </div>
+
+        <div class="text-center">
+            <button onclick="showPage('reviewFormPage')" class="text-gray-600 hover:text-gray-800 text-sm">واپس فارم پر</button>
+        </div>
+    </div>
+
+
+    <div id="reportDisplayPage" class="page container mx-auto mt-8 p-6 bg-white rounded-lg shadow-xl">
+
+        <div id="reportHeader" class="mb-6">
+             <h1 class="text-3xl font-bold text-blue-700 no-print">تعلیمی جائزے کی رپورٹ</h1>
+             <img id="reportLogo" src="" alt="مدرسہ لوگو" class="hidden"> </div>
+
+
+        <div id="reportContent">
+            <div class="report-section mb-6">
+                <h2 class="text-xl font-bold text-blue-700 mb-3">بنیادی معلومات</h2>
+                <p><strong class="font-semibold">مدرسے کا نام:</strong> <span id="reportMadrasaName"></span></p>
+                <p><strong class="font-semibold">پتہ:</strong> <span id="reportMadrasaAddress"></span></p>
+                 <p><strong class="font-semibold">رابطہ نمبر:</strong> <span id="reportMadrasaContact"></span></p>
+                <p><strong class="font-semibold">استاد کا نام:</strong> <span id="reportTeacherName"></span></p>
+                <p><strong class="font-semibold">جماعت:</strong> <span id="reportClassName"></span></p>
+                <p><strong class="font-semibold">تاریخ:</strong> <span id="reportReviewDate"></span></p>
+            </div>
+
+            <div class="report-section mb-6">
+                <h2 class="text-xl font-bold text-blue-700 mb-3">مضامین کی کارکردگی</h2>
+                <div id="reportBarChart" class="bar-chart-container">
+                     </div>
+            </div>
+
+             <div class="report-section mb-6">
+                <h2 class="text-xl font-bold text-blue-700 mb-3">مضمون کی اضافی تفصیلات</h2>
+                <div id="reportSubjectDetailsList">
+                    </div>
+            </div>
+
+            <div class="report-section mb-6">
+                <h2 class="text-xl font-bold text-blue-700 mb-3">ہم نصابی سرگرمیاں</h2>
+                <ul id="reportActivityList" class="list-disc list-inside">
+                    </ul>
+            </div>
+
+            <div class="report-section mb-6">
+                <h2 class="text-xl font-bold text-blue-700 mb-3">اضافی تاثرات</h2>
+                <p id="reportReviewerComments"></p>
+            </div>
+
+            <div class="report-section mb-6">
+                <p><strong class="font-semibold">جائزہ لینے والے کا نام:</strong> <span id="reportReviewerName"></span></p>
+            </div>
+        </div>
+
+
+        <div class="text-center mt-6 no-print">
+            <button onclick="downloadPdf()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full shadow transition duration-300 ease-in-out mr-4">
+                پی ڈی ایف ڈاؤن لوڈ کریں
+            </button>
+            <button onclick="showPage('reviewFormPage')" class="text-gray-600 hover:text-gray-800 text-sm">واپس فارم پر</button>
+        </div>
+    </div>
+
+    <div id="subjectEditModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" style="display: none;">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 class="text-lg font-bold text-blue-700 mb-4">مضامین میں ترمیم کریں</h3>
+            <div id="currentSubjectsList" class="mb-4">
+                </div>
+            <div class="mb-4">
+                <label for="newSubjectName" class="block text-gray-700 text-sm font-bold mb-2">نیا مضمون شامل کریں:</label>
+                <input type="text" id="newSubjectName" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            <div class="flex justify-end">
+                 <button onclick="addSubject()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full shadow transition duration-300 ease-in-out mr-2">
+                    شامل کریں
+                </button>
+                <button onclick="hideModal('subjectEditModal')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full shadow transition duration-300 ease-in-out">
+                    بند کریں
+                </button>
+            </div>
+        </div>
+    </div>
+
+     <div id="activityEditModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" style="display: none;">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 class="text-lg font-bold text-blue-700 mb-4">سرگرمیوں میں ترمیم کریں</h3>
+            <div id="currentActivitiesList" class="mb-4">
+                </div>
+            <div class="mb-4">
+                <label for="newActivityName" class="block text-gray-700 text-sm font-bold mb-2">نئی سرگرمی شامل کریں:</label>
+                <input type="text" id="newActivityName" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+            <div class="flex justify-end">
+                 <button onclick="addActivity()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full shadow transition duration-300 ease-in-out mr-2">
+                    شامل کریں
+                </button>
+                <button onclick="hideModal('activityEditModal')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full shadow transition duration-300 ease-in-out">
+                    بند کریں
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Data Storage ---
+        // Initial subjects array
+        let subjects = ['قرآن', 'حدیث', 'فقہ', 'سیرت'];
+        // Initial activities array
+        let activities = ['تقریر', 'نعت خوانی', 'کھیل', 'بحث و مباحثہ'];
+        // Array to store subject details (teacher, material, quality)
+        let subjectDetails = [];
+        // Object to store all collected report data
+        let reportData = {};
+
+        // Variable to track the index of the subject being edited in the modal
+        let editingSubjectIndex = -1;
+        // Variable to track the index of the activity being edited in the modal
+        let editingActivityIndex = -1;
+
+        // Variable to store the logo data URL
+        let logoDataUrl = '';
+
+
+        // --- Page Navigation ---
+        // Function to show a specific page and hide others
+        function showPage(pageId) {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                page.classList.remove('active-page');
+            });
+            document.getElementById(pageId).classList.add('active-page');
+
+            // Specific actions when showing certain pages
+            if (pageId === 'reviewFormPage') {
+                // Regenerate sliders and checkboxes when returning to the form
+                generateSubjectSliders();
+                generateActivityCheckboxes();
+            } else if (pageId === 'subjectDetailsPage') {
+                 // Populate subject dropdown and display details when going to this page
+                 populateSubjectDropdown();
+                 displaySubjectDetails();
+            } else if (pageId === 'reportDisplayPage') {
+                 // Report generation is handled by generateReport() before showing this page
+            }
+        }
+
+        // --- Dynamic Form Generation ---
+        // Function to generate subject performance sliders
+        function generateSubjectSliders() {
+            const container = document.getElementById('subjectSlidersContainer');
+            container.innerHTML = ''; // Clear previous sliders
+            subjects.forEach(subject => {
+                const div = document.createElement('div');
+                div.classList.add('mb-4');
+                // Use max="100" for the range slider
+                 // Retrieve existing score if available, otherwise default to 50
+                const existingScore = reportData.subjectScores && reportData.subjectScores[subject] !== undefined ? reportData.subjectScores[subject] : 50;
+
+                div.innerHTML = `
+                    <label for="score_${subject.replace(/\s+/g, '_')}" class="block text-gray-700 text-sm font-bold mb-2">${subject}:</label>
+                    <input type="range" id="score_${subject.replace(/\s+/g, '_')}" name="score_${subject.replace(/\s+/g, '_')}" min="0" max="100" value="${existingScore}"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg"
+                           oninput="this.nextElementSibling.innerText = this.value">
+                    <span class="block text-center text-gray-700 text-sm font-semibold mt-1">${existingScore}</span> `;
+                container.appendChild(div);
+            });
+        }
+
+        // Function to generate activity checkboxes
+        function generateActivityCheckboxes() {
+            const container = document.getElementById('activityCheckboxesContainer');
+            container.innerHTML = ''; // Clear previous checkboxes
+            activities.forEach(activity => {
+                const div = document.createElement('div');
+                div.classList.add('mb-2');
+                 // Check if activity was previously selected in reportData
+                const isSelected = reportData.selectedActivities && reportData.selectedActivities.includes(activity) ? 'checked' : '';
+
+                div.innerHTML = `
+                    <input type="checkbox" id="activity_${activity.replace(/\s+/g, '_')}" name="activity_${activity.replace(/\s+/g, '_')}" value="${activity}" class="mr-2 leading-tight" ${isSelected}>
+                    <label for="activity_${activity.replace(/\s+/g, '_')}" class="text-gray-700 text-sm">${activity}</label>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Function to populate the subject dropdown on the subject details page
+        function populateSubjectDropdown() {
+             const dropdown = document.getElementById('selectSubjectForDetails');
+             dropdown.innerHTML = ''; // Clear previous options
+             subjects.forEach(subject => {
+                 const option = document.createElement('option');
+                 option.value = subject;
+                 option.innerText = subject;
+                 dropdown.appendChild(option);
+             });
+             // Add a default option if no subjects exist
+             if (subjects.length === 0) {
+                 const defaultOption = document.createElement('option');
+                 defaultOption.value = "";
+                 defaultOption.innerText = "کوئی مضمون دستیاب نہیں";
+                 defaultOption.disabled = true;
+                 defaultOption.selected = true;
+                 dropdown.appendChild(defaultOption);
+             } else {
+                  // Select the first subject by default if subjects exist
+                 dropdown.value = subjects[0];
+             }
+        }
+
+
+        // --- Modal Management ---
+        // Function to show a modal
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+             if (modalId === 'subjectEditModal') {
+                listCurrentSubjects(); // Refresh subject list in modal
+                editingSubjectIndex = -1; // Reset editing state
+            } else if (modalId === 'activityEditModal') {
+                listCurrentActivities(); // Refresh activity list in modal
+                 editingActivityIndex = -1; // Reset editing state
+            }
+        }
+
+        // Function to hide a modal
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+             // Reset editing state when modal is closed
+             if (modalId === 'subjectEditModal') {
+                 editingSubjectIndex = -1;
+             } else if (modalId === 'activityEditModal') {
+                 editingActivityIndex = -1;
+             }
+        }
+
+        // --- Subject and Activity List Management (In-Modal Editing) ---
+        // Function to list current subjects in the edit modal
+        function listCurrentSubjects() {
+            const listContainer = document.getElementById('currentSubjectsList');
+            listContainer.innerHTML = ''; // Clear previous list
+            if (subjects.length === 0) {
+                listContainer.innerHTML = '<p class="text-gray-600">کوئی مضامین شامل نہیں کیے گئے۔</p>';
+                return;
+            }
+            subjects.forEach((subject, index) => {
+                const div = document.createElement('div');
+                div.classList.add('flex', 'justify-between', 'items-center', 'mb-2', 'p-2', 'bg-gray-100', 'rounded');
+                div.setAttribute('data-index', index); // Store index for easy access
+
+                // Display mode
+                const displayMode = `
+                    <span class="subject-name">${subject}</span>
+                    <div class="actions">
+                        <button onclick="editSubject(${index})" class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs py-1 px-2 rounded mr-1">ترمیم</button>
+                        <button onclick="deleteSubject(${index})" class="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded">مٹائیں</button>
+                    </div>
+                `;
+
+                // Edit mode (initially hidden)
+                const editMode = `
+                    <input type="text" value="${subject}" class="edit-subject-input shadow appearance-none border rounded py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline w-2/3">
+                    <div>
+                        <button onclick="saveSubjectEdit(${index})" class="bg-green-600 hover:bg-green-700 text-white text-xs py-1 px-2 rounded mr-1">محفوظ کریں</button>
+                         <button onclick="cancelSubjectEdit(${index})" class="bg-gray-400 hover:bg-gray-500 text-white text-xs py-1 px-2 rounded">منسوخ کریں</button>
+                    </div>
+                `;
+
+                div.innerHTML = `<div class="display-mode">${displayMode}</div><div class="edit-mode" style="display: none;">${editMode}</div>`;
+                listContainer.appendChild(div);
+            });
+        }
+
+        // Function to switch a subject item to edit mode
+        function editSubject(index) {
+             // Hide any currently active edit mode
+             if (editingSubjectIndex !== -1) {
+                 cancelSubjectEdit(editingSubjectIndex);
+             }
+
+            const listItem = document.querySelector(`#currentSubjectsList div[data-index="${index}"]`);
+            if (listItem) {
+                listItem.querySelector('.display-mode').style.display = 'none';
+                listItem.querySelector('.edit-mode').style.display = 'flex'; // Use flex to align input and buttons
+                 const input = listItem.querySelector('.edit-subject-input');
+                 input.focus(); // Focus the input field
+                 input.select(); // Select the text in the input
+                 editingSubjectIndex = index; // Set the index of the item being edited
+            }
+        }
+
+        // Function to save the edited subject name
+        function saveSubjectEdit(index) {
+            const listItem = document.querySelector(`#currentSubjectsList div[data-index="${index}"]`);
+            if (listItem) {
+                const input = listItem.querySelector('.edit-subject-input');
+                const newName = input.value.trim();
+                const oldName = subjects[index];
+
+                if (newName === '') {
+                    alert("مضمون کا نام خالی نہیں ہو سکتا۔");
+                    input.focus();
+                    return;
+                }
+
+                if (newName !== oldName && subjects.includes(newName)) {
+                    alert("یہ مضمون پہلے سے موجود ہے۔");
+                    input.focus();
+                    input.select();
+                    return;
+                }
+
+                // Update the subject name in the array
+                subjects[index] = newName;
+
+                // Update subject details if they exist for the old name
+                subjectDetails.forEach(detail => {
+                    if (detail.subject === oldName) {
+                        detail.subject = newName;
+                    }
+                });
+
+                // Update subject scores in reportData if they exist for the old name
+                 if (reportData.subjectScores && reportData.subjectScores[oldName] !== undefined) {
+                     reportData.subjectScores[newName] = reportData.subjectScores[oldName];
+                     delete reportData.subjectScores[oldName]; // Remove the old key
+                 }
+
+
+                // Refresh UI elements affected by subject name change
+                listCurrentSubjects(); // Refresh modal list
+                generateSubjectSliders(); // Update form sliders
+                populateSubjectDropdown(); // Update subject details dropdown
+                displaySubjectDetails(); // Refresh displayed details
+
+                editingSubjectIndex = -1; // Reset editing state
+            }
+        }
+
+        // Function to cancel subject editing
+        function cancelSubjectEdit(index) {
+             const listItem = document.querySelector(`#currentSubjectsList div[data-index="${index}"]`);
+             if (listItem) {
+                 // Revert input value to original name
+                 listItem.querySelector('.edit-subject-input').value = subjects[index];
+                 listItem.querySelector('.display-mode').style.display = 'flex'; // Use flex to align span and buttons
+                 listItem.querySelector('.edit-mode').style.display = 'none';
+                 editingSubjectIndex = -1; // Reset editing state
+             }
+        }
+
+
+        // Function to add a new subject
+        function addSubject() {
+            const input = document.getElementById('newSubjectName');
+            const newSubject = input.value.trim();
+            if (newSubject && !subjects.includes(newSubject)) {
+                subjects.push(newSubject);
+                input.value = '';
+                listCurrentSubjects(); // Refresh modal list
+                generateSubjectSliders(); // Update form sliders
+                populateSubjectDropdown(); // Update subject details dropdown
+            } else if (newSubject === '') {
+                alert("براہ مہربانی مضمون کا نام درج کریں۔");
+            } else {
+                 alert("یہ مضمون پہلے سے موجود ہے۔");
+            }
+        }
+
+        // Function to delete a subject
+        function deleteSubject(index) {
+            const subjectToDelete = subjects[index];
+            if (confirm(`کیا آپ واقعی "${subjectToDelete}" مضمون کو حذف کرنا چاہتے ہیں؟`)) {
+                // Remove from subjects array
+                subjects.splice(index, 1);
+                // Remove associated subject details
+                subjectDetails = subjectDetails.filter(detail => detail.subject !== subjectToDelete);
+                 // Remove score from reportData
+                 if (reportData.subjectScores && reportData.subjectScores[subjectToDelete] !== undefined) {
+                     delete reportData.subjectScores[subjectToDelete];
+                 }
+
+
+                listCurrentSubjects(); // Refresh modal list
+                generateSubjectSliders(); // Update form sliders
+                populateSubjectDropdown(); // Update subject details dropdown
+                displaySubjectDetails(); // Refresh displayed details
+
+                 editingSubjectIndex = -1; // Reset editing state if the deleted item was being edited
+            }
+        }
+
+         // Function to list current activities in the edit modal
+         function listCurrentActivities() {
+            const listContainer = document.getElementById('currentActivitiesList');
+            listContainer.innerHTML = ''; // Clear previous list
+             if (activities.length === 0) {
+                listContainer.innerHTML = '<p class="text-gray-600">کوئی سرگرمیاں شامل نہیں کی گئیں۔</p>';
+                return;
+            }
+            activities.forEach((activity, index) => {
+                const div = document.createElement('div');
+                div.classList.add('flex', 'justify-between', 'items-center', 'mb-2', 'p-2', 'bg-gray-100', 'rounded');
+                 div.setAttribute('data-index', index); // Store index
+
+                 // Display mode
+                 const displayMode = `
+                     <span class="activity-name">${activity}</span>
+                     <div class="actions">
+                         <button onclick="editActivity(${index})" class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs py-1 px-2 rounded mr-1">ترمیم</button>
+                         <button onclick="deleteActivity(${index})" class="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded">مٹائیں</button>
+                     </div>
+                 `;
+
+                 // Edit mode (initially hidden)
+                 const editMode = `
+                     <input type="text" value="${activity}" class="edit-activity-input shadow appearance-none border rounded py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline w-2/3">
+                     <div>
+                         <button onclick="saveActivityEdit(${index})" class="bg-green-600 hover:bg-green-700 text-white text-xs py-1 px-2 rounded mr-1">محفوظ کریں</button>
+                          <button onclick="cancelActivityEdit(${index})" class="bg-gray-400 hover:bg-gray-500 text-white text-xs py-1 px-2 rounded">منسوخ کریں</button>
+                     </div>
+                 `;
+
+                 div.innerHTML = `<div class="display-mode">${displayMode}</div><div class="edit-mode" style="display: none;">${editMode}</div>`;
+                listContainer.appendChild(div);
+            });
+        }
+
+        // Function to switch an activity item to edit mode
+         function editActivity(index) {
+             // Hide any currently active edit mode
+             if (editingActivityIndex !== -1) {
+                 cancelActivityEdit(editingActivityIndex);
+             }
+
+             const listItem = document.querySelector(`#currentActivitiesList div[data-index="${index}"]`);
+             if (listItem) {
+                 listItem.querySelector('.display-mode').style.display = 'none';
+                 listItem.querySelector('.edit-mode').style.display = 'flex'; // Use flex
+                 const input = listItem.querySelector('.edit-activity-input');
+                 input.focus(); // Focus the input field
+                 input.select(); // Select the text in the input
+                 editingActivityIndex = index; // Set the index of the item being edited
+             }
+         }
+
+         // Function to save the edited activity name
+         function saveActivityEdit(index) {
+             const listItem = document.querySelector(`#currentActivitiesList div[data-index="${index}"]`);
+             if (listItem) {
+                 const input = listItem.querySelector('.edit-activity-input');
+                 const newName = input.value.trim();
+                 const oldName = activities[index];
+
+                 if (newName === '') {
+                     alert("سرگرمی کا نام خالی نہیں ہو سکتا۔");
+                     input.focus();
+                     return;
+                 }
+
+                 if (newName !== oldName && activities.includes(newName)) {
+                     alert("یہ سرگرمی پہلے سے موجود ہے۔");
+                     input.focus();
+                     input.select();
+                     return;
+                 }
+
+                 // Update the activity name in the array
+                 activities[index] = newName;
+
+                 // Update selected activities in reportData if they exist
+                  if (reportData.selectedActivities) {
+                      const activityIndexInReport = reportData.selectedActivities.indexOf(oldName);
+                      if (activityIndexInReport > -1) {
+                          reportData.selectedActivities[activityIndexInReport] = newName;
+                      }
+                  }
+
+                 // Refresh UI elements affected by activity name change
+                 listCurrentActivities(); // Refresh modal list
+                 generateActivityCheckboxes(); // Update form checkboxes
+
+                 editingActivityIndex = -1; // Reset editing state
+             }
+         }
+
+         // Function to cancel activity editing
+         function cancelActivityEdit(index) {
+              const listItem = document.querySelector(`#currentActivitiesList div[data-index="${index}"]`);
+              if (listItem) {
+                  // Revert input value to original name
+                  listItem.querySelector('.edit-activity-input').value = activities[index];
+                  listItem.querySelector('.display-mode').style.display = 'flex'; // Use flex
+                  listItem.querySelector('.edit-mode').style.display = 'none';
+                  editingActivityIndex = -1; // Reset editing state
+              }
+         }
+
+
+        // Function to add a new activity
+        function addActivity() {
+            const input = document.getElementById('newActivityName');
+            const newActivity = input.value.trim();
+            if (newActivity && !activities.includes(newActivity)) {
+                activities.push(newActivity);
+                input.value = '';
+                listCurrentActivities(); // Refresh modal list
+                generateActivityCheckboxes(); // Update form checkboxes
+            } else if (newActivity === '') {
+                 alert("براہ مہربانی سرگرمی کا نام درج کریں۔");
+            } else {
+                alert("یہ سرگرمی پہلے سے موجود ہے۔");
+            }
+        }
+
+        // Function to delete an activity
+        function deleteActivity(index) {
+            const activityToDelete = activities[index];
+            if (confirm(`کیا آپ واقعی "${activityToDelete}" سرگرمی کو حذف کرنا چاہتے ہیں؟`)) {
+                // Remove from activities array
+                activities.splice(index, 1);
+                 // Remove from selected activities in reportData if selected
+                 if (reportData.selectedActivities) {
+                     reportData.selectedActivities = reportData.selectedActivities.filter(act => act !== activityToDelete);
+                 }
+                listCurrentActivities(); // Refresh modal list
+                generateActivityCheckboxes(); // Update form checkboxes
+
+                 editingActivityIndex = -1; // Reset editing state if the deleted item was being edited
+            }
+        }
+
+
+        // --- Subject Details Management ---
+        // Function to add or update subject details
+        function addSubjectDetails() {
+            const subject = document.getElementById('selectSubjectForDetails').value;
+            const teacher = document.getElementById('subjectTeacher').value.trim();
+            const material = document.getElementById('materialCovered').value.trim();
+            const quality = document.getElementById('qualityResult').value.trim();
+
+            if (!subject) {
+                 alert("براہ مہربانی مضمون منتخب کریں۔");
+                 return;
+            }
+
+            if (teacher && material && quality) {
+                 // Check if details for this subject already exist
+                 const existingIndex = subjectDetails.findIndex(detail => detail.subject === subject);
+
+                 if (existingIndex > -1) {
+                     // Update existing details
+                     subjectDetails[existingIndex] = { subject, teacher, material, quality };
+                 } else {
+                    // Add new details
+                    subjectDetails.push({ subject, teacher, material, quality });
+                 }
+
+
+                // Clear form fields
+                document.getElementById('subjectTeacher').value = '';
+                document.getElementById('materialCovered').value = '';
+                document.getElementById('qualityResult').value = '';
+                // Reset dropdown to default or first option
+                 if (subjects.length > 0) {
+                    document.getElementById('selectSubjectForDetails').value = subjects[0];
+                 } else {
+                     document.getElementById('selectSubjectForDetails').value = ""; // Or handle no subjects case
+                 }
+
+
+                displaySubjectDetails(); // Refresh the displayed list
+            } else {
+                alert("براہ مہربانی مضمون کی تمام تفصیلات درج کریں۔");
+            }
+        }
+
+        // Function to display added subject details
+        function displaySubjectDetails() {
+            const container = document.getElementById('addedSubjectDetailsList');
+            container.innerHTML = ''; // Clear previous list
+
+            if (subjectDetails.length === 0) {
+                 container.innerHTML = '<p class="text-gray-600">کوئی تفصیلات شامل نہیں کی گئیں۔</p>';
+                 return;
+            }
+
+            subjectDetails.forEach((detail, index) => {
+                const div = document.createElement('div');
+                div.classList.add('border', 'rounded', 'p-4', 'mb-4', 'bg-gray-50');
+                div.innerHTML = `
+                    <p><strong class="font-semibold">مضمون:</strong> ${detail.subject}</p>
+                    <p><strong class="font-semibold">استاد:</strong> ${detail.teacher}</p>
+                    <p><strong class="font-semibold">پڑھایا گیا مواد:</strong> ${detail.material}</p>
+                    <p><strong class="font-semibold">معیار / نتیجہ:</strong> ${detail.quality}</p>
+                    <div class="mt-3 text-left">
+                        <button onclick="editSubjectDetail(${index})" class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-1 px-2 rounded mr-2">ترمیم کریں</button>
+                        <button onclick="deleteSubjectDetail(${index})" class="bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-2 rounded">مٹائیں</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Function to edit an existing subject detail entry
+        function editSubjectDetail(index) {
+             const detail = subjectDetails[index];
+             // Populate the form with existing details for editing
+             document.getElementById('selectSubjectForDetails').value = detail.subject;
+             document.getElementById('subjectTeacher').value = detail.teacher;
+             document.getElementById('materialCovered').value = detail.material;
+             document.getElementById('qualityResult').value = detail.quality;
+
+             // Remove the old entry after populating the form
+             // We don't refresh the display here, it will be refreshed when addSubjectDetails is called after editing
+             subjectDetails.splice(index, 1);
+             displaySubjectDetails(); // Refresh the displayed list immediately after removing
+        }
+
+        // Function to delete a subject detail entry
+        function deleteSubjectDetail(index) {
+             if (confirm("کیا آپ اس تفصیل کو حذف کرنا چاہتے ہیں؟")) {
+                 subjectDetails.splice(index, 1);
+                 displaySubjectDetails(); // Refresh the displayed list
+             }
+        }
+
+
+        // --- Logo Upload Handling ---
+        document.addEventListener('DOMContentLoaded', () => {
+             // Add event listener to the file input
+             const logoUploadInput = document.getElementById('logoUpload');
+             if (logoUploadInput) {
+                 logoUploadInput.addEventListener('change', handleLogoUpload);
+             }
+             showPage('homePage'); // Start on the home page
+        });
+
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            const statusText = document.getElementById('logoUploadStatus');
+            logoDataUrl = ''; // Clear previous logo
+
+            if (file) {
+                // Check file type
+                if (!file.type.startsWith('image/')) {
+                    statusText.innerText = "براہ مہربانی ایک امیج فائل منتخب کریں۔";
+                    statusText.classList.remove('text-gray-600');
+                    statusText.classList.add('text-red-600');
+                    return;
+                }
+
+                // Check file size (optional, e.g., limit to 2MB)
+                const maxSize = 2 * 1024 * 1024; // 2MB
+                if (file.size > maxSize) {
+                    statusText.innerText = "امیج فائل بہت بڑی ہے۔ زیادہ سے زیادہ سائز 2MB ہے۔";
+                     statusText.classList.remove('text-gray-600');
+                    statusText.classList.add('text-red-600');
+                    return;
+                }
+
+
+                statusText.innerText = "امیج لوڈ ہو رہی ہے...";
+                 statusText.classList.remove('text-red-600');
+                 statusText.classList.add('text-gray-600');
+
+
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    logoDataUrl = e.target.result; // Store the data URL
+                    statusText.innerText = "امیج کامیابی سے لوڈ ہو گئی۔";
+                    statusText.classList.remove('text-red-600');
+                    statusText.classList.add('text-green-600');
+
+                     // Optional: Show a preview of the uploaded image
+                     // const previewImg = document.createElement('img');
+                     // previewImg.src = logoDataUrl;
+                     // previewImg.style.maxWidth = '50px';
+                     // previewImg.style.maxHeight = '50px';
+                     // statusText.parentNode.appendChild(previewImg); // Add preview next to status
+                };
+
+                reader.onerror = function() {
+                    statusText.innerText = "امیج لوڈ کرنے میں ناکام رہا۔";
+                    statusText.classList.remove('text-gray-600', 'text-green-600');
+                    statusText.classList.add('text-red-600');
+                    logoDataUrl = ''; // Clear data URL on error
+                };
+
+                reader.readAsDataURL(file); // Read the file as a data URL
+
+            } else {
+                statusText.innerText = "کوئی امیج منتخب نہیں کی گئی۔";
+                 statusText.classList.remove('text-red-600', 'text-green-600');
+                 statusText.classList.add('text-gray-600');
+            }
+        }
+
+
+        // --- Report Generation ---
+        // Function to collect data and generate the report
+        function generateReport() {
+            // Collect data from the form
+            reportData.madrasaName = document.getElementById('madrasaName').value.trim();
+            reportData.madrasaAddress = document.getElementById('madrasaAddress').value.trim();
+             reportData.madrasaContact = document.getElementById('madrasaContact').value.trim();
+            reportData.teacherName = document.getElementById('teacherName').value.trim();
+            reportData.className = document.getElementById('className').value.trim();
+            reportData.reviewDate = document.getElementById('reviewDate').value;
+            // Use the stored logoDataUrl
+            reportData.logoUrl = logoDataUrl;
+
+
+            reportData.subjectScores = {};
+            subjects.forEach(subject => {
+                // Get score from the slider (now 0-100)
+                const scoreInput = document.getElementById(`score_${subject.replace(/\s+/g, '_')}`);
+                 if (scoreInput) { // Check if the input exists for the current subject
+                     reportData.subjectScores[subject] = parseInt(scoreInput.value, 10);
+                 } else {
+                     // If a subject was added/deleted, its slider might not exist. Use the score from reportData if available.
+                     reportData.subjectScores[subject] = reportData.subjectScores && reportData.subjectScores[subject] !== undefined ? reportData.subjectScores[subject] : 0; // Default to 0
+                 }
+            });
+
+            reportData.selectedActivities = [];
+            const activityCheckboxes = document.querySelectorAll('#activityCheckboxesContainer input[type="checkbox"]:checked');
+            activityCheckboxes.forEach(checkbox => {
+                reportData.selectedActivities.push(checkbox.value);
+            });
+
+            reportData.reviewerComments = document.getElementById('reviewerComments').value.trim();
+            reportData.reviewerName = document.getElementById('reviewerName').value.trim();
+            reportData.subjectDetails = subjectDetails; // Include added subject details
+
+            // Populate the report display page
+            document.getElementById('reportMadrasaName').innerText = reportData.madrasaName || 'درج نہیں کیا گیا';
+            document.getElementById('reportMadrasaAddress').innerText = reportData.madrasaAddress || 'درج نہیں کیا گیا';
+             document.getElementById('reportMadrasaContact').innerText = reportData.madrasaContact || 'درج نہیں کیا گیا';
+            document.getElementById('reportTeacherName').innerText = reportData.teacherName || 'درج نہیں کیا گیا';
+            document.getElementById('reportClassName').innerText = reportData.className || 'درج نہیں کیا گیا';
+            document.getElementById('reportReviewDate').innerText = reportData.reviewDate || 'درج نہیں کی گئی';
+            document.getElementById('reportReviewerComments').innerText = reportData.reviewerComments || 'کوئی تاثرات درج نہیں کیے گئے';
+            document.getElementById('reportReviewerName').innerText = reportData.reviewerName || 'درج نہیں کیا گیا';
+
+            // Set logo source and display it if data URL is available
+            const reportLogoImg = document.getElementById('reportLogo');
+            if (reportData.logoUrl) {
+                reportLogoImg.src = reportData.logoUrl;
+                reportLogoImg.classList.remove('hidden'); // Show the image
+                 // No need for onerror here as data URLs don't have network errors
+            } else {
+                reportLogoImg.classList.add('hidden'); // Hide if no URL
+                 reportLogoImg.src = ""; // Clear previous source
+            }
+
+
+            // Display Subject Details in Report
+            const reportSubjectDetailsContainer = document.getElementById('reportSubjectDetailsList');
+            reportSubjectDetailsContainer.innerHTML = '';
+             if (reportData.subjectDetails.length === 0) {
+                 reportSubjectDetailsContainer.innerHTML = '<p class="text-gray-600">کوئی اضافی تفصیلات شامل نہیں کی گئیں۔</p>';
+             } else {
+                 reportData.subjectDetails.forEach(detail => {
+                     const div = document.createElement('div');
+                     div.classList.add('border', 'rounded', 'p-3', 'mb-3', 'bg-gray-50');
+                      div.innerHTML = `
+                         <p><strong class="font-semibold">مضمون:</strong> ${detail.subject}</p>
+                         <p><strong class="font-semibold">استاد:</strong> ${detail.teacher}</p>
+                         <p><strong class="font-semibold">پڑھایا گیا مواد:</strong> ${detail.material}</p>
+                         <p><strong class="font-semibold">معیار / نتیجہ:</strong> ${detail.quality}</p>
+                     `;
+                     reportSubjectDetailsContainer.appendChild(div);
+                 });
+             }
+
+
+            // Display selected activities in Report
+            const reportActivityList = document.getElementById('reportActivityList');
+            reportActivityList.innerHTML = '';
+            if (reportData.selectedActivities.length === 0) {
+                 reportActivityList.innerHTML = '<li class="text-gray-600">کوئی سرگرمی منتخب نہیں کی گئی۔</li>';
+            } else {
+                 reportData.selectedActivities.forEach(activity => {
+                    const li = document.createElement('li');
+                    li.innerText = activity;
+                    reportActivityList.appendChild(li);
+                });
+            }
+
+
+            // Generate the bar chart with 0-100 scale
+            generateBarChart(reportData.subjectScores);
+
+            // Show the report page
+            showPage('reportDisplayPage');
+        }
+
+        // Function to generate the bar chart
+        function generateBarChart(scores) {
+            const chartContainer = document.getElementById('reportBarChart');
+            chartContainer.innerHTML = ''; // Clear previous chart
+
+            const subjectNames = Object.keys(scores);
+            const maxScore = 100; // Max score is now 100
+
+             // Set data attribute for CSS to adjust bar width dynamically
+            chartContainer.setAttribute('data-num-subjects', subjectNames.length);
+
+
+            if (subjectNames.length === 0) {
+                 chartContainer.innerHTML = '<p class="text-center text-gray-600">کوئی مضامین شامل نہیں کیے گئے۔</p>';
+                 return;
+            }
+
+
+            subjectNames.forEach(subject => {
+                const score = scores[subject];
+                // Calculate height based on 0-100 scale
+                const barHeight = (score / maxScore) * 100; // Height as percentage of container height
+
+                const bar = document.createElement('div');
+                bar.classList.add('bar', 'rounded-t'); // Add rounded top corners
+                bar.style.height = `${barHeight}%`;
+                bar.setAttribute('data-score', score); // Store score for display
+
+                const subjectLabel = document.createElement('span');
+                subjectLabel.innerText = subject;
+
+                bar.appendChild(subjectLabel);
+                chartContainer.appendChild(bar);
+            });
+        }
+
+        // --- PDF Download Function ---
+        function downloadPdf() {
+            const element = document.getElementById('reportDisplayPage'); // Get the entire report page div
+
+            // Options for html2pdf
+            const options = {
+                margin: 10,
+                filename: 'madrasa_review_report.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 }, // Scale up for better resolution
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Use html2pdf to generate and download the PDF
+            html2pdf().from(element).set(options).save();
+        }
+
+
+        // --- Initial Setup ---
+        // Run when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+             // Add event listener to the file input (moved here for clarity)
+             const logoUploadInput = document.getElementById('logoUpload');
+             if (logoUploadInput) {
+                 logoUploadInput.addEventListener('change', handleLogoUpload);
+             }
+            showPage('homePage'); // Start on the home page
+        });
+
+    </script>
+
+</body>
+</html>
